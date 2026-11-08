@@ -13,11 +13,23 @@ BASE_DIR = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'froze
 
 
 class App:
+    # 主题配色
+    BG_COLOR = "#F4F6F9"
+    HEADER_BG = "#1E88E5"
+    HEADER_FG = "#FFFFFF"
+    PANEL_BG = "#FFFFFF"
+    GREEN = "#43A047"
+    RED = "#E53935"
+    GRAY = "#9E9E9E"
+    BLUE = "#1E88E5"
+    DARK = "#263238"
+
     def __init__(self, root):
         self.root = root
-        self.root.title("Peak欧卡挂机V1.5")
-        self.root.geometry("420x320")
+        self.root.title("Peak欧卡挂机 V1.5")
+        self.root.geometry("440x390")
         self.root.resizable(False, False)
+        self.root.configure(bg=self.BG_COLOR)
         icon_path = os.path.join(BASE_DIR, "app.ico")
         if os.path.exists(icon_path):
             try:
@@ -45,72 +57,139 @@ class App:
         self.setup_tray()
         self.setup_hotkeys()
 
-    def create_widgets(self):
-        main_frame = ttk.Frame(self.root, padding="10 6")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+    def make_button(self, parent, text, command, bg, active_bg, font_size=10, fg="white", side=tk.LEFT):
+        """创建统一风格的圆角平面按钮"""
+        def on_enter(e):
+            e.widget.config(bg=active_bg, relief=tk.RAISED)
+        def on_leave(e):
+            e.widget.config(bg=bg, relief=tk.FLAT)
+        btn = tk.Button(
+            parent, text=text, command=command,
+            font=("Microsoft YaHei", font_size, "bold"),
+            bg=bg, fg=fg, relief=tk.FLAT, cursor="hand2",
+            activebackground=active_bg, activeforeground=fg,
+            bd=0, highlightthickness=0, pady=4
+        )
+        btn.bind("<Enter>", on_enter)
+        btn.bind("<Leave>", on_leave)
+        btn.pack(side=side, padx=2, expand=True, fill=tk.BOTH)
+        return btn
 
-        top_row = ttk.Frame(main_frame)
-        top_row.pack(fill=tk.X, pady=(0, 5))
+    def create_header(self, parent):
+        """顶部蓝色标题栏"""
+        header = tk.Frame(parent, bg=self.HEADER_BG, height=46)
+        header.pack(fill=tk.X)
+        header.pack_propagate(False)
+
+        tk.Label(header, text="Peak 欧卡挂机助手", font=("Microsoft YaHei", 14, "bold"),
+                 bg=self.HEADER_BG, fg=self.HEADER_FG).pack(side=tk.LEFT, padx=14)
+        tk.Label(header, text="Euro Truck Simulator 2 自动发送",
+                 font=("Microsoft YaHei", 8), bg=self.HEADER_BG,
+                 fg="#C7E3FF").pack(side=tk.RIGHT, padx=14)
+        return header
+
+    def create_widgets(self):
+        self.create_header(self.root)
+
+        # 主体容器
+        main_frame = tk.Frame(self.root, bg=self.BG_COLOR)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # ---------- 第一排：发送内容 + 右侧信息 ----------
+        top_row = tk.Frame(main_frame, bg=self.BG_COLOR)
+        top_row.pack(fill=tk.X, pady=(0, 8))
         top_row.columnconfigure(0, weight=1)
         top_row.columnconfigure(1, weight=0)
 
-        text_frame = ttk.LabelFrame(top_row, text="发送内容", padding="5")
-        text_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        # 发送内容卡片
+        text_frame = tk.Frame(top_row, bg=self.PANEL_BG, highlightbackground="#DDE3EA",
+                              highlightthickness=1, highlightcolor="#DDE3EA")
+        text_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
-        self.text_entry = tk.Text(text_frame, height=3, font=("Microsoft YaHei", 9), wrap=tk.WORD)
-        self.text_entry.pack(fill=tk.BOTH, expand=True)
+        tk.Label(text_frame, text="发送内容", font=("Microsoft YaHei", 9, "bold"),
+                 bg=self.PANEL_BG, fg=self.DARK).pack(anchor=tk.W, padx=8, pady=(6, 2))
 
-        right_col = ttk.Frame(top_row)
+        self.text_entry = tk.Text(text_frame, height=3, font=("Microsoft YaHei", 10), wrap=tk.WORD,
+                                  bd=0, highlightthickness=0, relief=tk.FLAT,
+                                  padx=4, pady=2, bg="#FFFFFF")
+        self.text_entry.pack(fill=tk.BOTH, expand=True, padx=6, pady=(0, 6))
+
+        # 右侧栏
+        right_col = tk.Frame(top_row, bg=self.BG_COLOR)
         right_col.grid(row=0, column=1, sticky="ns")
-        top_row.columnconfigure(1, minsize=155)
+        top_row.columnconfigure(1, minsize=160)
 
-        interval_frame = ttk.LabelFrame(right_col, text="间隔(秒)", padding="5")
-        interval_frame.pack(fill=tk.X, pady=(0, 5))
+        # 间隔卡片
+        interval_frame = tk.Frame(right_col, bg=self.PANEL_BG, highlightbackground="#DDE3EA",
+                                  highlightthickness=1, highlightcolor="#DDE3EA")
+        interval_frame.pack(fill=tk.X, pady=(0, 8))
 
-        ttk.Entry(interval_frame, textvariable=self.interval, width=6, font=("Microsoft YaHei", 9)).pack(side=tk.LEFT)
-        ttk.Label(interval_frame, text="秒", font=("Microsoft YaHei", 9)).pack(side=tk.LEFT, padx=2)
+        tk.Label(interval_frame, text="发送间隔", font=("Microsoft YaHei", 9, "bold"),
+                 bg=self.PANEL_BG, fg=self.DARK).pack(anchor=tk.W, padx=8, pady=(6, 2))
 
-        info_frame = ttk.LabelFrame(right_col, text="Peak 社区/Peak Community", padding="5")
+        interval_row = tk.Frame(interval_frame, bg=self.PANEL_BG)
+        interval_row.pack(anchor=tk.W, padx=8, pady=(0, 6))
+        self.interval_entry = tk.Entry(interval_row, textvariable=self.interval, width=5, font=("Microsoft YaHei", 11, "bold"),
+                                       justify=tk.CENTER, bd=0, highlightthickness=1,
+                                       highlightbackground="#1E88E5", fg=self.BLUE, bg="#FFFFFF")
+        self.interval_entry.pack(side=tk.LEFT, ipady=2)
+        tk.Label(interval_row, text="秒", font=("Microsoft YaHei", 9),
+                 bg=self.PANEL_BG, fg="#666666").pack(side=tk.LEFT, padx=(4, 0))
+
+        # 社区信息卡片
+        info_frame = tk.Frame(right_col, bg=self.PANEL_BG, highlightbackground="#DDE3EA",
+                              highlightthickness=1, highlightcolor="#DDE3EA")
         info_frame.pack(fill=tk.X)
 
-        ttk.Label(info_frame, text="车队接待群 515111100", font=("Microsoft YaHei", 8, "bold"), foreground="#1565C0").pack(anchor=tk.W)
-        ttk.Label(info_frame, text="车队联运 YY8457", font=("Microsoft YaHei", 8, "bold"), foreground="#1565C0").pack(anchor=tk.W)
+        tk.Label(info_frame, text="Peak 社区 / Peak Community", font=("Microsoft YaHei", 8, "bold"),
+                 bg=self.BLUE, fg=self.HEADER_FG).pack(fill=tk.X, padx=0, ipady=2)
 
-        status_frame = ttk.LabelFrame(main_frame, text="当前状态", padding="5")
-        status_frame.pack(fill=tk.X, pady=(0, 6))
+        tk.Label(info_frame, text="🚚 车队接待群  515111100", font=("Microsoft YaHei", 8, "bold"),
+                 bg=self.PANEL_BG, fg="#1565C0").pack(anchor=tk.W, padx=8, pady=(5, 1))
+        tk.Label(info_frame, text="🎙 车队联运  YY8457", font=("Microsoft YaHei", 8, "bold"),
+                 bg=self.PANEL_BG, fg="#1565C0").pack(anchor=tk.W, padx=8, pady=(0, 5))
 
-        self.status_label = ttk.Label(status_frame, text="等待启动", font=("Microsoft YaHei", 9))
-        self.status_label.pack()
+        # ---------- 当前状态卡片 ----------
+        status_frame = tk.Frame(main_frame, bg=self.PANEL_BG, highlightbackground="#DDE3EA",
+                                highlightthickness=1, highlightcolor="#DDE3EA")
+        status_frame.pack(fill=tk.X, pady=(0, 8))
 
-        self.process_status_label = ttk.Label(status_frame, text="", font=("Microsoft YaHei", 8), foreground="red")
-        self.process_status_label.pack(pady=(3, 0))
+        status_header = tk.Frame(status_frame, bg=self.PANEL_BG)
+        status_header.pack(fill=tk.X)
+        self.status_dot = tk.Canvas(status_header, width=10, height=10, bg=self.PANEL_BG,
+                                    highlightthickness=0)
+        self.status_dot.pack(side=tk.LEFT, padx=(10, 6), pady=8)
+        self.status_dot.create_oval(1, 1, 9, 9, fill="#BDBDBD", outline="")
 
-        action_frame = ttk.Frame(main_frame)
-        action_frame.pack(fill=tk.X, pady=(0, 5))
+        self.status_label = tk.Label(status_header, text="等待启动", font=("Microsoft YaHei", 9, "bold"),
+                                     bg=self.PANEL_BG, fg=self.DARK)
+        self.status_label.pack(side=tk.LEFT, pady=6)
 
-        self.start_btn = tk.Button(action_frame, text="▶ 启动", command=self.start,
-                                    font=("Microsoft YaHei", 10, "bold"),
-                                    bg="#9E9E9E", fg="white", relief=tk.RAISED, cursor="hand2", state=tk.DISABLED)
-        self.start_btn.pack(side=tk.LEFT, padx=(0, 4), expand=True, fill=tk.BOTH, ipady=5)
+        self.process_status_label = tk.Label(status_frame, text="", font=("Microsoft YaHei", 8),
+                                             bg=self.PANEL_BG, fg=self.GRAY)
+        self.process_status_label.pack(anchor=tk.W, padx=10, pady=(0, 6))
 
-        self.stop_btn = tk.Button(action_frame, text="■ 停止", command=self.stop,
-                                   font=("Microsoft YaHei", 10, "bold"),
-                                   bg="#9E9E9E", fg="white", relief=tk.RAISED, cursor="hand2", state=tk.DISABLED)
-        self.stop_btn.pack(side=tk.LEFT, padx=(0, 4), expand=True, fill=tk.BOTH, ipady=5)
+        # ---------- 操作按钮 ----------
+        action_frame = tk.Frame(main_frame, bg=self.BG_COLOR)
+        action_frame.pack(fill=tk.X, pady=(0, 8))
 
-        tk.Button(action_frame, text="最小化", command=self.minimize_to_tray,
-                  font=("Microsoft YaHei", 9, "bold"),
-                  bg="#607D8B", fg="white", relief=tk.RAISED, cursor="hand2").pack(side=tk.LEFT, expand=True, fill=tk.BOTH, ipady=5)
+        self.start_btn = self.make_button(action_frame, "▶ 启动", self.start, self.GRAY, "#388E3C")
+        self.stop_btn = self.make_button(action_frame, "■ 停止", self.stop, self.GRAY, "#D32F2F")
+        self.make_button(action_frame, "最小化", self.minimize_to_tray, "#607D8B", "#455A64", font_size=9)
 
-        hotkey_frame = ttk.Frame(main_frame)
-        hotkey_frame.pack(fill=tk.X, pady=(2, 0))
-        ttk.Label(hotkey_frame, text="快捷键：F10 启动  |  F11 停止  |  后台发送",
-                  font=("Microsoft YaHei", 8), foreground="#666666").pack(anchor=tk.CENTER)
+        # ---------- 快捷键说明 ----------
+        hotkey_frame = tk.Frame(main_frame, bg=self.BG_COLOR)
+        hotkey_frame.pack(fill=tk.X, pady=(2, 4))
+        tip = ("F10 启动   |   F11 停止   |   最小化到托盘后自动向后台发送")
+        tk.Label(hotkey_frame, text=tip, font=("Microsoft YaHei", 8),
+                 bg=self.BG_COLOR, fg="#78909C").pack(anchor=tk.CENTER)
 
-        copyright_frame = ttk.Frame(main_frame)
-        copyright_frame.pack(fill=tk.X, pady=(1, 0))
-        ttk.Label(copyright_frame, text="软件所有权归Peak社区所有",
-                  font=("Microsoft YaHei", 8), foreground="#555555").pack(anchor=tk.E)
+        # ---------- 版权 ----------
+        copyright_frame = tk.Frame(main_frame, bg=self.BG_COLOR)
+        copyright_frame.pack(fill=tk.X)
+        tk.Label(copyright_frame, text="© 软件所有权归 Peak 社区所有",
+                 font=("Microsoft YaHei", 8), bg=self.BG_COLOR,
+                 fg="#B0BEC5").pack(anchor=tk.E)
 
     def setup_hotkeys(self):
         self.hotkey_thread_id = register_hotkeys(
@@ -128,15 +207,21 @@ class App:
         self.process_check_thread = threading.Thread(target=self.process_check_loop, daemon=True)
         self.process_check_thread.start()
 
+    def set_status_dot(self, color):
+        self.status_dot.delete("all")
+        self.status_dot.create_oval(1, 1, 9, 9, fill=color, outline="")
+
     def update_process_status(self):
         if self.eurotrucks2_running:
-            self.process_status_label.config(text="✅ 检测到 Euro Truck Simulator 2 运行中", foreground="green")
+            self.process_status_label.config(text="✅ 检测到 Euro Truck Simulator 2 运行中", foreground="#43A047")
+            self.set_status_dot(self.GREEN)
             if not self.is_running:
-                self.start_btn.config(state=tk.NORMAL, bg="#4CAF50")
+                self.start_btn.config(state=tk.NORMAL, bg=self.GREEN)
         else:
-            self.process_status_label.config(text="❌ 未检测到 Euro Truck Simulator 2，请先启动游戏", foreground="red")
+            self.process_status_label.config(text="❌ 未检测到 Euro Truck Simulator 2，请先启动游戏", foreground="#E53935")
+            self.set_status_dot("#BDBDBD")
             if not self.is_running:
-                self.start_btn.config(state=tk.DISABLED, bg="#9E9E9E")
+                self.start_btn.config(state=tk.DISABLED, bg=self.GRAY)
 
     def run_loop(self):
         while not self.stop_event.is_set():
@@ -195,8 +280,8 @@ class App:
 
         self.is_running = True
         self.stop_event.clear()
-        self.start_btn.config(state=tk.DISABLED, bg="#9E9E9E")
-        self.stop_btn.config(state=tk.NORMAL, bg="#F44336")
+        self.start_btn.config(state=tk.DISABLED, bg=self.GRAY)
+        self.stop_btn.config(state=tk.NORMAL, bg=self.RED)
         self.update_status("运行中...")
 
         self.worker_thread = threading.Thread(target=self.run_loop, daemon=True)
@@ -206,14 +291,18 @@ class App:
         self.is_running = False
         self.stop_event.set()
         if self.eurotrucks2_running:
-            self.start_btn.config(state=tk.NORMAL, bg="#4CAF50")
+            self.start_btn.config(state=tk.NORMAL, bg=self.GREEN)
+            self.set_status_dot(self.GREEN)
         else:
-            self.start_btn.config(state=tk.DISABLED, bg="#9E9E9E")
-        self.stop_btn.config(state=tk.DISABLED, bg="#9E9E9E")
+            self.start_btn.config(state=tk.DISABLED, bg=self.GRAY)
+            self.set_status_dot("#BDBDBD")
+        self.stop_btn.config(state=tk.DISABLED, bg=self.GRAY)
         self.update_status("已停止")
 
     def update_status(self, text):
         self.status_label.config(text=text)
+        if self.is_running:
+            self.set_status_dot(self.BLUE)
         self.root.update_idletasks()
 
     def create_tray_icon(self):
